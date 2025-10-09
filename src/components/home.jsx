@@ -1,4 +1,6 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { API_BASE_URL } from "/config";
+import axios from 'axios';
 import {
   HomeIcon,
   MagnifyingGlassIcon,
@@ -18,36 +20,7 @@ import {
 import { HeartIcon as HeartIconSolid } from '@heroicons/react/24/solid'
 
 const Home = () => {
-  const [tweets] = useState([
-    {
-      id: 1,
-      user: { name: 'John Doe', username: 'john_doe', avatar: 'https://via.placeholder.com/40' },
-      content: 'Just shipped a new feature! The feeling when your code works on the first try is unmatched 🚀',
-      likes: 124,
-      retweets: 23,
-      replies: 8,
-      timeAgo: '2h'
-    },
-    {
-      id: 2,
-      user: { name: 'Jane Smith', username: 'jane_smith', avatar: 'https://via.placeholder.com/40' },
-      content: 'Coffee, code, repeat ☕️💻 What\'s your coding fuel?',
-      likes: 89,
-      retweets: 12,
-      replies: 15,
-      timeAgo: '4h'
-    },
-    {
-      id: 3,
-      user: { name: 'Tech News', username: 'tech_news', avatar: 'https://via.placeholder.com/40' },
-      content: 'Breaking: New JavaScript framework released! Because we definitely needed another one 😄',
-      likes: 256,
-      retweets: 89,
-      replies: 45,
-      timeAgo: '6h'
-    }
-  ])
-
+  const [posts,setPosts] = useState([])
   const [likedTweets, setLikedTweets] = useState(new Set())
   const [retweetedTweets, setRetweetedTweets] = useState(new Set())
 
@@ -74,6 +47,29 @@ const Home = () => {
       return newSet
     })
   }
+
+  function formatDateTime(dateString) {
+  const date = new Date(dateString);
+  return date.toLocaleString('en-IN', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    //hour: '2-digit',
+    //minute: '2-digit',
+    //second: '2-digit',
+  });
+}
+
+  useEffect (() => {
+    axios.get(`${API_BASE_URL}post/`)
+      .then(response => {
+        console.log(response.data);
+        setPosts(response.data.data);
+      })
+      .catch(error => {
+        console.error('Error fetching post:', error);
+      });
+  }, [])
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -152,43 +148,49 @@ const Home = () => {
 
           {/* Tweets Feed */}
           <div>
-            {tweets.map(tweet => (
-              <div key={tweet.id} className="border-b border-gray-800 p-4 hover:bg-gray-950 cursor-pointer">
+            {posts.map(post => (
+              <div key={post.uid} className="border-b border-gray-800 p-4 hover:bg-gray-950 cursor-pointer">
                 <div className="flex space-x-3">
-                  <img src={tweet.user.avatar} alt={tweet.user.name} className="w-12 h-12 rounded-full" />
+                  <img
+                  src={API_BASE_URL + post.user.profile_image}
+                  alt={post.user.username}
+                  className="w-12 h-12 rounded-full object-cover"
+                  loading="lazy"
+                />
                   <div className="flex-1">
                     <div className="flex items-center space-x-2">
-                      <span className="font-bold">{tweet.user.name}</span>
-                      <span className="text-gray-500">@{tweet.user.username}</span>
+                      <span className="font-bold">{post.user.first_name} {post.user.last_name}</span>
+                      <span className="text-gray-500">@{post.user.username}</span>
                       <span className="text-gray-500">·</span>
-                      <span className="text-gray-500">{tweet.timeAgo}</span>
+                      <span className="text-gray-500">{formatDateTime(post.created_at)}</span>
                     </div>
-                    <p className="mt-2 text-white">{tweet.content}</p>
+                    <h3 className='font-bold'>{post.title}</h3>
+                    <p className="mt-2 text-white">{post.description}</p>
                     <div className="flex justify-between max-w-md mt-4 text-gray-500">
                       <div className="flex items-center space-x-2 hover:text-blue-400 cursor-pointer">
                         <ChatBubbleOvalLeftIcon className="w-5 h-5" />
-                        <span>{tweet.replies}</span>
+                        <span>{post.replies}</span>
                       </div>
                       <div 
                         className={`flex items-center space-x-2 hover:text-green-400 cursor-pointer ${
-                          retweetedTweets.has(tweet.id) ? 'text-green-400' : ''
+                          retweetedTweets.has(post.id) ? 'text-green-400' : ''
                         }`}
-                        onClick={() => toggleRetweet(tweet.id)}
+                        onClick={() => toggleRetweet(post.id)}
                       >
                         <ArrowPathIcon className="w-5 h-5" />
-                        <span>{tweet.retweets + (retweetedTweets.has(tweet.id) ? 1 : 0)}</span>
+                        <span>{post.retweets + (retweetedTweets.has(post.id) ? 1 : 0)}</span>
                       </div>
                       <div 
                         className={`flex items-center space-x-2 hover:text-red-400 cursor-pointer ${
-                          likedTweets.has(tweet.id) ? 'text-red-400' : ''
+                          likedTweets.has(post.id) ? 'text-red-400' : ''
                         }`}
-                        onClick={() => toggleLike(tweet.id)}
+                        onClick={() => toggleLike(post.id)}
                       >
-                        {likedTweets.has(tweet.id) ? 
+                        {likedTweets.has(post.id) ? 
                           <HeartIconSolid className="w-5 h-5" /> : 
                           <HeartIcon className="w-5 h-5" />
                         }
-                        <span>{tweet.likes + (likedTweets.has(tweet.id) ? 1 : 0)}</span>
+                        <span>{post.likes + (likedTweets.has(post.id) ? 1 : 0)}</span>
                       </div>
                       <div className="flex items-center space-x-2 hover:text-blue-400 cursor-pointer">
                         <ShareIcon className="w-5 h-5" />
